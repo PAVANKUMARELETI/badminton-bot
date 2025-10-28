@@ -193,7 +193,10 @@ Stay safe and enjoy playing! 🏸
             logger.info(f"Decision made: {decision_result['decision']}")
 
             # Format response
-            response = self._format_forecast_response(decision_result)
+            response = self._format_forecast_response(
+                decision_result=decision_result,
+                forecast_result=forecast_result
+            )
 
             # Delete thinking message and send result
             await thinking_msg.delete()
@@ -212,19 +215,21 @@ Stay safe and enjoy playing! 🏸
         # Treat any message as a forecast request
         await self.forecast_command(update, context)
 
-    def _format_forecast_response(self, decision_result: dict) -> str:
+    def _format_forecast_response(self, decision_result: dict, forecast_result: dict) -> str:
         """
         Format forecast result for Telegram.
 
         Args:
             decision_result: Decision output from decide_play()
+            forecast_result: Forecast output from make_forecast()
 
         Returns:
             Formatted message string
         """
         decision = decision_result["decision"]
-        forecast = decision_result["forecast"]
         details = decision_result["details"]
+        median_forecast = forecast_result["median"]
+        q90_forecast = forecast_result["q90"]
 
         # Emoji for decision
         emoji = "✅" if decision == "PLAY" else "❌"
@@ -233,15 +238,13 @@ Stay safe and enjoy playing! 🏸
         lines = [
             f"{emoji} *{decision}* {emoji}",
             "",
-            f"📅 *Forecast Time:* {decision_result['timestamp']}",
-            "",
             "*Wind Speed Predictions:*",
         ]
 
         # Add horizon forecasts
         for horizon in ["1h", "3h", "6h"]:
-            median = forecast["median"][f"horizon_{horizon}"]
-            q90 = forecast["q90"][f"horizon_{horizon}"]
+            median = median_forecast[f"horizon_{horizon}"]
+            q90 = q90_forecast[f"horizon_{horizon}"]
             passes = details[horizon]["passes"]
 
             status_emoji = "✅" if passes else "⚠️"
