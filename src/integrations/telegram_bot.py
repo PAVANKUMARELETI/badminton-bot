@@ -117,8 +117,11 @@ Stay safe and enjoy playing! 🏸
     async def forecast_command(self, update, context):
         """Handle /forecast command."""
         try:
+            logger.info("Forecast command received")
+            
             # Load model if not already loaded
             self._load_model()
+            logger.info("Model loaded successfully")
 
             # Send "thinking" message
             thinking_msg = await update.message.reply_text(
@@ -127,15 +130,25 @@ Stay safe and enjoy playing! 🏸
 
             # Get forecast
             # TODO: In production, replace with actual weather API
+            logger.info("Loading sample data")
             df = load_sample()
+            logger.info(f"Sample data loaded: {len(df)} rows")
+            
+            logger.info("Building features")
             data_df = build_features(df)
+            logger.info(f"Features built: {data_df.shape}")
+            
+            logger.info("Making forecast")
             forecast_result = make_forecast(self.model, data_df)
+            logger.info(f"Forecast complete: {forecast_result}")
 
             # Make decision
+            logger.info("Making decision")
             decision_result = decide_play(
                 median_forecast=forecast_result["median"],
                 q90_forecast=forecast_result["q90"]
             )
+            logger.info(f"Decision made: {decision_result['decision']}")
 
             # Format response
             response = self._format_forecast_response(decision_result)
@@ -143,6 +156,8 @@ Stay safe and enjoy playing! 🏸
             # Delete thinking message and send result
             await thinking_msg.delete()
             await update.message.reply_text(response, parse_mode="Markdown")
+            
+            logger.info("Forecast response sent successfully")
 
         except Exception as e:
             logger.error(f"Error in forecast_command: {e}", exc_info=True)
