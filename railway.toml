@@ -1,0 +1,10 @@
+# Railway.app deployment configuration (optional)
+# Railway auto-detects Python projects, but you can customize here
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python -m src.integrations.telegram_bot"
+restartPolicyType = "ALWAYS"
+restartPolicyMaxRetries = 10

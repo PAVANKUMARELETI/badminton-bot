@@ -1,0 +1,16 @@
+# Additional requirements for messaging bot integrations
+
+# Telegram bot
+python-telegram-bot>=20.0
+
+# WhatsApp bot (via Twilio)
+twilio>=8.0.0
+flask>=3.0.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Optional: For advanced features
+redis>=5.0.0  # For caching and rate limiting
+sqlalchemy>=2.0.0  # For user data storage
+schedule>=1.2.0  # For scheduled messages

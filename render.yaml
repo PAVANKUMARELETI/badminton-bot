@@ -1,0 +1,20 @@
+# Deployment configuration for Render.com
+# https://render.com
+
+services:
+  - type: web
+    name: badminton-wind-bot
+    env: python
+    region: singapore  # Change to closest region: oregon, frankfurt, singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m src.integrations.telegram_bot
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false  # Set manually in Render dashboard
+      - key: OPENWEATHER_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: PYTHON_VERSION
+        value: "3.10"
+    autoDeploy: true
+    healthCheckPath: /

@@ -1,0 +1,31 @@
+# Conda Environment Configuration for Badminton Wind Predictor
+# Use this file to create a conda environment with all dependencies
+
+name: badminton-wind
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - numpy=1.26.4
+  - pandas=2.2.1
+  - scikit-learn=1.4.1
+  - matplotlib=3.8.3
+  - seaborn=0.13.2
+  - pyyaml=6.0.1
+  - tqdm=4.66.2
+  
+  # Testing
+  - pytest=8.1.1
+  - pytest-cov=4.1.0
+  
+  # TensorFlow (install via pip in conda env for better compatibility)
+  - pip
+  - pip:
+    - tensorflow==2.16.1
+    - gradio==4.26.0
+    - black==24.3.0
+    - isort==5.13.2
+    - flake8==7.0.0
