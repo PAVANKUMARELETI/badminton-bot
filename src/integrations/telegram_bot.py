@@ -132,7 +132,10 @@ Stay safe and enjoy playing! 🏸
             forecast_result = make_forecast(self.model, data_df)
 
             # Make decision
-            decision_result = decide_play(forecast_result)
+            decision_result = decide_play(
+                median_forecast=forecast_result["median"],
+                q90_forecast=forecast_result["q90"]
+            )
 
             # Format response
             response = self._format_forecast_response(decision_result)
