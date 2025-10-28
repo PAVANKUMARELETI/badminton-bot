@@ -87,7 +87,15 @@ I help you decide if it's safe to play badminton based on wind conditions at III
 📍 *Location:* {self.current_location}
 🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
 
-Use the buttons below to get started! 👇
+*🎯 Quick Start:*
+Just type: "Can I play?" or "Should I play badminton?"
+
+*📋 Commands:*
+/forecast - Get detailed wind forecast
+/location - Change location
+/help - Show help message
+
+👇 *Or use the buttons below:*
         """
         
         # Create inline keyboard with buttons
@@ -114,24 +122,34 @@ Use the buttons below to get started! 👇
         help_message = """
 🏸 *How to Use This Bot* 🏸
 
-*Quick Check:*
-Just tap the "Can I Play?" button or send any message like:
+*💬 Option 1: Just Type*
+Send me any message like:
 • "Can I play?"
 • "Weather check"
 • "Is it windy?"
+• "Should I play badminton?"
 
-*Understanding the Forecast:*
-✅ PLAY - Wind is within safe limits
-❌ DON'T PLAY - Wind too strong for badminton
+*⌨️ Option 2: Use Commands*
+/forecast - Get detailed wind forecast
+/location <city> - Change location (e.g., /location Delhi)
+/help - Show this message
+/start - Main menu
 
-*Horizons:*
+*🔘 Option 3: Click Buttons*
+Tap any button below for quick actions!
+
+*📊 Understanding the Forecast:*
+✅ *PLAY* - Wind is within safe limits
+❌ *DON'T PLAY* - Wind too strong for badminton
+
+*⏱️ Forecast Horizons:*
 • 1h - Next hour forecast
 • 3h - Next 3 hours forecast
 • 6h - Next 6 hours forecast
 
-*Thresholds:*
-• Safe wind: < 1.5 m/s (median)
-• Max gust: < 3.5 m/s (90th percentile)
+*🌬️ Safety Thresholds:*
+• Safe median wind: < 1.5 m/s
+• Safe max gust (Q90): < 3.5 m/s
 
 Stay safe and enjoy playing! 🏸
         """
@@ -511,8 +529,9 @@ Currently using sample data. In production, this will use real weather station d
             await update.message.reply_text(
                 f"📍 *Current location:* {self.current_location}\n"
                 f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E\n\n"
-                "Choose a city from the options below, or type:\n"
-                "`/location <city name>`\n\n"
+                "*🔘 Click a city button below*\n"
+                "*OR*\n"
+                "*⌨️ Type:* `/location <city name>`\n\n"
                 "Example: `/location Kolkata`",
                 parse_mode="Markdown",
                 reply_markup=reply_markup
