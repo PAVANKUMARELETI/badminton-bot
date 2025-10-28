@@ -158,10 +158,18 @@ Stay safe and enjoy playing! 🏸
             self._load_model()
             logger.info("Model loaded successfully")
 
-            # Send "thinking" message
-            thinking_msg = await update.message.reply_text(
-                "🤔 Analyzing wind conditions..."
-            )
+            # Determine if this is from a button click or direct message
+            if update.callback_query:
+                # It's a button click
+                query = update.callback_query
+                message = query.message
+                # Send "thinking" message by editing the existing one
+                thinking_msg = await query.edit_message_text("🤔 Analyzing wind conditions...")
+            else:
+                # It's a direct message/command
+                message = update.message
+                # Send new "thinking" message
+                thinking_msg = await message.reply_text("🤔 Analyzing wind conditions...")
 
             # Get forecast - try real weather data first, fall back to sample
             try:
@@ -219,9 +227,6 @@ Stay safe and enjoy playing! 🏸
                 forecast_result=forecast_result
             )
 
-            # Delete thinking message and send result with action buttons
-            await thinking_msg.delete()
-            
             # Add action buttons
             keyboard = [
                 [
@@ -232,11 +237,22 @@ Stay safe and enjoy playing! 🏸
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await update.message.reply_text(
-                response, 
-                parse_mode="Markdown",
-                reply_markup=reply_markup
-            )
+            # Send or edit the message depending on source
+            if update.callback_query:
+                # Edit existing message from button click
+                await thinking_msg.edit_text(
+                    response,
+                    parse_mode="Markdown",
+                    reply_markup=reply_markup
+                )
+            else:
+                # Delete thinking message and send new one for direct command
+                await thinking_msg.delete()
+                await message.reply_text(
+                    response, 
+                    parse_mode="Markdown",
+                    reply_markup=reply_markup
+                )
             
             logger.info("Forecast response sent successfully")
 
@@ -246,10 +262,18 @@ Stay safe and enjoy playing! 🏸
             keyboard = [[InlineKeyboardButton("🔄 Try Again", callback_data="forecast")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await update.message.reply_text(
-                "❌ Sorry, I encountered an error. Please try again later.",
-                reply_markup=reply_markup
-            )
+            error_message = "❌ Sorry, I encountered an error. Please try again later."
+            
+            if update.callback_query:
+                await update.callback_query.edit_message_text(
+                    error_message,
+                    reply_markup=reply_markup
+                )
+            else:
+                await update.message.reply_text(
+                    error_message,
+                    reply_markup=reply_markup
+                )
 
     async def handle_message(self, update, context):
         """Handle general text messages."""
@@ -265,8 +289,7 @@ Stay safe and enjoy playing! 🏸
         
         # Handle different button actions
         if callback_data == "forecast":
-            # Create a fake update object for forecast_command
-            update.message = query.message
+            # Trigger forecast command for button click
             await self.forecast_command(update, context)
             
         elif callback_data == "start":
@@ -301,9 +324,43 @@ Use the buttons below to get started! 👇
             )
             
         elif callback_data == "help":
-            # Show help
-            update.message = query.message
-            await self.help_command(update, context)
+            # Show help message
+            help_message = """
+🏸 *How to Use This Bot* 🏸
+
+*Quick Check:*
+Just tap the "Can I Play?" button or send any message like:
+• "Can I play?"
+• "Weather check"
+• "Is it windy?"
+
+*Understanding the Forecast:*
+✅ PLAY - Wind is within safe limits
+❌ DON'T PLAY - Wind too strong for badminton
+
+*Horizons:*
+• 1h - Next hour forecast
+• 3h - Next 3 hours forecast
+• 6h - Next 6 hours forecast
+
+*Thresholds:*
+• Safe wind: < 1.5 m/s (median)
+• Max gust: < 3.5 m/s (90th percentile)
+
+Stay safe and enjoy playing! 🏸
+            """
+            
+            keyboard = [
+                [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+                [InlineKeyboardButton("🔙 Back to Menu", callback_data="start")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                help_message,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
             
         elif callback_data == "location":
             # Show location selection
