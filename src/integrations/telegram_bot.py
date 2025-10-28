@@ -27,6 +27,8 @@ try:
 except ImportError:
     pass  # python-dotenv not installed, use system env vars only
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 from src.cli.infer import load_model, make_forecast
 from src.data.fetch import load_sample
 from src.data.preprocess import build_features
@@ -85,15 +87,26 @@ I help you decide if it's safe to play badminton based on wind conditions at III
 📍 *Location:* {self.current_location}
 🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
 
-*Commands:*
-/forecast - Get current wind forecast
-/location <city> - Change location
-/help - Show this help message
-
-Just ask me "Can I play?" anytime! 🎯
+Use the buttons below to get started! 👇
         """
+        
+        # Create inline keyboard with buttons
+        keyboard = [
+            [
+                InlineKeyboardButton("🏸 Can I Play?", callback_data="forecast"),
+                InlineKeyboardButton("📊 Forecast", callback_data="forecast")
+            ],
+            [
+                InlineKeyboardButton("📍 Location", callback_data="location"),
+                InlineKeyboardButton("❓ Help", callback_data="help")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         await update.message.reply_text(
-            welcome_message, parse_mode="Markdown"
+            welcome_message, 
+            parse_mode="Markdown",
+            reply_markup=reply_markup
         )
 
     async def help_command(self, update, context):
@@ -102,15 +115,10 @@ Just ask me "Can I play?" anytime! 🎯
 🏸 *How to Use This Bot* 🏸
 
 *Quick Check:*
-Just send me any message like:
+Just tap the "Can I Play?" button or send any message like:
 • "Can I play?"
 • "Weather check"
 • "Is it windy?"
-
-*Commands:*
-/forecast - Detailed wind forecast
-/start - Welcome message
-/help - This help message
 
 *Understanding the Forecast:*
 ✅ PLAY - Wind is within safe limits
@@ -121,12 +129,25 @@ Just send me any message like:
 • 3h - Next 3 hours forecast
 • 6h - Next 6 hours forecast
 
-Safe wind: < 1.5 m/s (median)
-Max gust: < 3.5 m/s (90th percentile)
+*Thresholds:*
+• Safe wind: < 1.5 m/s (median)
+• Max gust: < 3.5 m/s (90th percentile)
 
 Stay safe and enjoy playing! 🏸
         """
-        await update.message.reply_text(help_message, parse_mode="Markdown")
+        
+        # Add quick action buttons
+        keyboard = [
+            [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+            [InlineKeyboardButton("🔙 Back to Menu", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            help_message, 
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
 
     async def forecast_command(self, update, context):
         """Handle /forecast command."""
@@ -198,22 +219,153 @@ Stay safe and enjoy playing! 🏸
                 forecast_result=forecast_result
             )
 
-            # Delete thinking message and send result
+            # Delete thinking message and send result with action buttons
             await thinking_msg.delete()
-            await update.message.reply_text(response, parse_mode="Markdown")
+            
+            # Add action buttons
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔄 Refresh", callback_data="forecast"),
+                    InlineKeyboardButton("📍 Change Location", callback_data="location")
+                ],
+                [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                response, 
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
             
             logger.info("Forecast response sent successfully")
 
         except Exception as e:
             logger.error(f"Error in forecast_command: {e}", exc_info=True)
+            
+            keyboard = [[InlineKeyboardButton("🔄 Try Again", callback_data="forecast")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
             await update.message.reply_text(
-                "❌ Sorry, I encountered an error. Please try again later."
+                "❌ Sorry, I encountered an error. Please try again later.",
+                reply_markup=reply_markup
             )
 
     async def handle_message(self, update, context):
         """Handle general text messages."""
         # Treat any message as a forecast request
         await self.forecast_command(update, context)
+
+    async def button_callback(self, update, context):
+        """Handle button clicks from inline keyboards."""
+        query = update.callback_query
+        await query.answer()  # Acknowledge the button click
+        
+        callback_data = query.data
+        
+        # Handle different button actions
+        if callback_data == "forecast":
+            # Create a fake update object for forecast_command
+            update.message = query.message
+            await self.forecast_command(update, context)
+            
+        elif callback_data == "start":
+            # Show main menu
+            welcome_message = f"""
+🏸 *Welcome to Badminton Wind Forecast Bot!* 🌬️
+
+I help you decide if it's safe to play badminton based on wind conditions at IIIT Lucknow campus.
+
+📍 *Location:* {self.current_location}
+🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
+
+Use the buttons below to get started! 👇
+            """
+            
+            keyboard = [
+                [
+                    InlineKeyboardButton("🏸 Can I Play?", callback_data="forecast"),
+                    InlineKeyboardButton("📊 Forecast", callback_data="forecast")
+                ],
+                [
+                    InlineKeyboardButton("📍 Location", callback_data="location"),
+                    InlineKeyboardButton("❓ Help", callback_data="help")
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                welcome_message,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+            
+        elif callback_data == "help":
+            # Show help
+            update.message = query.message
+            await self.help_command(update, context)
+            
+        elif callback_data == "location":
+            # Show location selection
+            keyboard = [
+                [
+                    InlineKeyboardButton("🏫 IIIT Lucknow", callback_data="loc_iiit"),
+                    InlineKeyboardButton("🏛️ Delhi", callback_data="loc_delhi")
+                ],
+                [
+                    InlineKeyboardButton("🌆 Mumbai", callback_data="loc_mumbai"),
+                    InlineKeyboardButton("🌃 Bangalore", callback_data="loc_bangalore")
+                ],
+                [
+                    InlineKeyboardButton("🌇 Hyderabad", callback_data="loc_hyderabad"),
+                    InlineKeyboardButton("🌉 Chennai", callback_data="loc_chennai")
+                ],
+                [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                f"📍 *Current location:* {self.current_location}\n"
+                f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E\n\n"
+                "Choose a city from the options below:",
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+            
+        elif callback_data.startswith("loc_"):
+            # Handle city selection
+            city_map = {
+                "loc_iiit": "IIIT Lucknow",
+                "loc_delhi": "Delhi",
+                "loc_mumbai": "Mumbai",
+                "loc_bangalore": "Bangalore",
+                "loc_hyderabad": "Hyderabad",
+                "loc_chennai": "Chennai"
+            }
+            
+            city = city_map.get(callback_data)
+            if city:
+                self._update_location(city)
+                
+                keyboard = [
+                    [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+                    [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                if self.current_lat and self.current_lon:
+                    message = (
+                        f"✅ Location set to: *{self.current_location}*\n"
+                        f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E"
+                    )
+                else:
+                    message = f"✅ Location updated to: *{self.current_location}*"
+                
+                await query.edit_message_text(
+                    message,
+                    parse_mode="Markdown",
+                    reply_markup=reply_markup
+                )
 
     def _format_forecast_response(self, decision_result: dict, forecast_result: dict) -> str:
         """
@@ -281,40 +433,74 @@ Currently using sample data. In production, this will use real weather station d
     async def location_command(self, update, context):
         """Handle /location command to change location."""
         if not context.args:
+            # Show current location with popular city buttons
+            keyboard = [
+                [
+                    InlineKeyboardButton("🏫 IIIT Lucknow", callback_data="loc_iiit"),
+                    InlineKeyboardButton("🏛️ Delhi", callback_data="loc_delhi")
+                ],
+                [
+                    InlineKeyboardButton("🌆 Mumbai", callback_data="loc_mumbai"),
+                    InlineKeyboardButton("🌃 Bangalore", callback_data="loc_bangalore")
+                ],
+                [
+                    InlineKeyboardButton("🌇 Hyderabad", callback_data="loc_hyderabad"),
+                    InlineKeyboardButton("🌉 Chennai", callback_data="loc_chennai")
+                ],
+                [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
             await update.message.reply_text(
                 f"📍 *Current location:* {self.current_location}\n"
                 f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E\n\n"
-                "To change location, use: `/location <city name>`\n"
-                "Example: `/location Delhi`\n\n"
-                "💡 To return to IIIT Lucknow, use `/location IIIT Lucknow`",
-                parse_mode="Markdown"
+                "Choose a city from the options below, or type:\n"
+                "`/location <city name>`\n\n"
+                "Example: `/location Kolkata`",
+                parse_mode="Markdown",
+                reply_markup=reply_markup
             )
             return
         
         new_location = " ".join(context.args)
+        self._update_location(new_location)
+        
+        keyboard = [
+            [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+            [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        if self.current_lat and self.current_lon:
+            message = (
+                f"✅ Location set to: *{self.current_location}*\n"
+                f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E"
+            )
+        else:
+            message = f"✅ Location updated to: *{self.current_location}*"
+        
+        await update.message.reply_text(
+            message,
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
+        
+        logger.info(f"Location changed to: {self.current_location}")
+
+    def _update_location(self, location: str):
+        """Update bot location (helper method)."""
+        location_lower = location.lower()
         
         # Check if user wants to return to IIIT Lucknow
-        if "iiit" in new_location.lower() and "lucknow" in new_location.lower():
+        if "iiit" in location_lower and "lucknow" in location_lower:
             self.current_location = DEFAULT_LOCATION
             self.current_lat = DEFAULT_LAT
             self.current_lon = DEFAULT_LON
-            await update.message.reply_text(
-                f"✅ Location reset to: *{self.current_location}*\n"
-                f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E",
-                parse_mode="Markdown"
-            )
         else:
-            self.current_location = new_location
+            self.current_location = location
             # Reset coordinates so API will geocode the city name
             self.current_lat = None
             self.current_lon = None
-            await update.message.reply_text(
-                f"✅ Location updated to: *{self.current_location}*\n\n"
-                f"Use /forecast to get wind predictions for this location.",
-                parse_mode="Markdown"
-            )
-        
-        logger.info(f"Location changed to: {self.current_location}")
 
     def run(self):
         """Start the Telegram bot."""
@@ -336,12 +522,16 @@ Currently using sample data. In production, this will use real weather station d
         # Create application
         self.application = Application.builder().token(self.token).build()
 
-        # Add handlers
+        # Add command handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("forecast", self.forecast_command))
         self.application.add_handler(CommandHandler("location", self.location_command))
         self.application.add_handler(CommandHandler("settings", self.settings_command))
+
+        # Add callback query handler for button clicks
+        from telegram.ext import CallbackQueryHandler
+        self.application.add_handler(CallbackQueryHandler(self.button_callback))
 
         # Handle all text messages as forecast requests
         self.application.add_handler(
