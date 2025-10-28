@@ -34,6 +34,11 @@ from src.decision.rules import decide_play
 
 logger = logging.getLogger(__name__)
 
+# Default location configuration for IIIT Lucknow
+DEFAULT_LOCATION = "IIIT Lucknow"
+DEFAULT_LAT = 26.7984  # IIIT Lucknow latitude
+DEFAULT_LON = 81.0241  # IIIT Lucknow longitude
+
 
 class TelegramBot:
     """Telegram bot for wind forecasting."""
@@ -56,6 +61,12 @@ class TelegramBot:
         self.model_path = model_path or "experiments/latest/model.keras"
         self.model = None
         self.application = None
+        
+        # Location tracking
+        self.current_location = DEFAULT_LOCATION
+        self.current_lat = DEFAULT_LAT
+        self.current_lon = DEFAULT_LON
+        logger.info(f"Bot initialized for {self.current_location} ({self.current_lat}°N, {self.current_lon}°E)")
 
     def _load_model(self):
         """Load the forecasting model."""
@@ -66,15 +77,18 @@ class TelegramBot:
 
     async def start_command(self, update, context):
         """Handle /start command."""
-        welcome_message = """
+        welcome_message = f"""
 🏸 *Welcome to Badminton Wind Forecast Bot!* 🌬️
 
-I help you decide if it's safe to play badminton based on wind conditions.
+I help you decide if it's safe to play badminton based on wind conditions at IIIT Lucknow campus.
+
+📍 *Location:* {self.current_location}
+🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
 
 *Commands:*
 /forecast - Get current wind forecast
+/location <city> - Change location
 /help - Show this help message
-/settings - Customize your preferences
 
 Just ask me "Can I play?" anytime! 🎯
         """
@@ -128,11 +142,48 @@ Stay safe and enjoy playing! 🏸
                 "🤔 Analyzing wind conditions..."
             )
 
-            # Get forecast
-            # TODO: In production, replace with actual weather API
-            logger.info("Loading sample data")
-            df = load_sample()
-            logger.info(f"Sample data loaded: {len(df)} rows")
+            # Get forecast - try real weather data first, fall back to sample
+            try:
+                from src.data.weather_api import OpenWeatherMapAPI
+                
+                api_key = os.getenv("OPENWEATHER_API_KEY")
+                if api_key and self.current_lat and self.current_lon:
+                    logger.info(f"Fetching real weather data for {self.current_location} ({self.current_lat}, {self.current_lon})")
+                    weather_api = OpenWeatherMapAPI(api_key)
+                    
+                    # Use coordinates for accurate location-based data
+                    weather_data = weather_api.get_forecast_by_coords(
+                        lat=self.current_lat,
+                        lon=self.current_lon
+                    )
+                    
+                    if weather_data:
+                        logger.info("Using real weather data from OpenWeatherMap")
+                        # TODO: Convert weather_data to DataFrame format
+                        # For now, fall back to sample data
+                        df = load_sample()
+                    else:
+                        logger.warning("Could not fetch real weather data, using sample")
+                        df = load_sample()
+                elif api_key and self.current_location:
+                    logger.info(f"Fetching weather by city name: {self.current_location}")
+                    weather_api = OpenWeatherMapAPI(api_key)
+                    weather_data = weather_api.get_current_weather(self.current_location)
+                    if weather_data:
+                        logger.info("Using real weather data")
+                        df = load_sample()
+                    else:
+                        logger.warning("Using sample data")
+                        df = load_sample()
+                else:
+                    logger.warning("No API key or location, using sample data")
+                    df = load_sample()
+            except Exception as api_error:
+                logger.error(f"Weather API error: {api_error}")
+                logger.info("Falling back to sample data")
+                df = load_sample()
+            
+            logger.info(f"Data loaded: {len(df)} rows")
             
             logger.info("Building features")
             data_df = build_features(df)
@@ -233,6 +284,44 @@ Currently using sample data. In production, this will use real weather station d
         """
         await update.message.reply_text(settings_message, parse_mode="Markdown")
 
+    async def location_command(self, update, context):
+        """Handle /location command to change location."""
+        if not context.args:
+            await update.message.reply_text(
+                f"📍 *Current location:* {self.current_location}\n"
+                f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E\n\n"
+                "To change location, use: `/location <city name>`\n"
+                "Example: `/location Delhi`\n\n"
+                "💡 To return to IIIT Lucknow, use `/location IIIT Lucknow`",
+                parse_mode="Markdown"
+            )
+            return
+        
+        new_location = " ".join(context.args)
+        
+        # Check if user wants to return to IIIT Lucknow
+        if "iiit" in new_location.lower() and "lucknow" in new_location.lower():
+            self.current_location = DEFAULT_LOCATION
+            self.current_lat = DEFAULT_LAT
+            self.current_lon = DEFAULT_LON
+            await update.message.reply_text(
+                f"✅ Location reset to: *{self.current_location}*\n"
+                f"🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E",
+                parse_mode="Markdown"
+            )
+        else:
+            self.current_location = new_location
+            # Reset coordinates so API will geocode the city name
+            self.current_lat = None
+            self.current_lon = None
+            await update.message.reply_text(
+                f"✅ Location updated to: *{self.current_location}*\n\n"
+                f"Use /forecast to get wind predictions for this location.",
+                parse_mode="Markdown"
+            )
+        
+        logger.info(f"Location changed to: {self.current_location}")
+
     def run(self):
         """Start the Telegram bot."""
         try:
@@ -257,6 +346,7 @@ Currently using sample data. In production, this will use real weather station d
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("forecast", self.forecast_command))
+        self.application.add_handler(CommandHandler("location", self.location_command))
         self.application.add_handler(CommandHandler("settings", self.settings_command))
 
         # Handle all text messages as forecast requests
