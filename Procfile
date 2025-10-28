@@ -1,1 +1,1 @@
-web: python -m src.integrations.telegram_bot
+web: bash start.sh

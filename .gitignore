@@ -124,7 +124,9 @@ dmypy.json
 
 # Project-specific
 data/raw/
-experiments/
+# experiments/  # Don't ignore experiments - we need the model!
+experiments/*.log
+experiments/*/checkpoints/
 *.h5
 *.hdf5
 *.pkl
