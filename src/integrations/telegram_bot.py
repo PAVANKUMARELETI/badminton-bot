@@ -152,34 +152,25 @@ Stay safe and enjoy playing! 🏸
                     weather_api = OpenWeatherMapAPI(api_key)
                     
                     # Use coordinates for accurate location-based data
-                    weather_data = weather_api.get_forecast_by_coords(
+                    weather_data = weather_api.get_hourly_forecast(
                         lat=self.current_lat,
-                        lon=self.current_lon
+                        lon=self.current_lon,
+                        hours=6
                     )
                     
-                    if weather_data:
-                        logger.info("Using real weather data from OpenWeatherMap")
-                        # TODO: Convert weather_data to DataFrame format
+                    if weather_data is not None and not weather_data.empty:
+                        logger.info(f"Using real weather data from OpenWeatherMap: {len(weather_data)} hours")
+                        # TODO: Convert weather_data to proper format for model
                         # For now, fall back to sample data
                         df = load_sample()
                     else:
                         logger.warning("Could not fetch real weather data, using sample")
                         df = load_sample()
-                elif api_key and self.current_location:
-                    logger.info(f"Fetching weather by city name: {self.current_location}")
-                    weather_api = OpenWeatherMapAPI(api_key)
-                    weather_data = weather_api.get_current_weather(self.current_location)
-                    if weather_data:
-                        logger.info("Using real weather data")
-                        df = load_sample()
-                    else:
-                        logger.warning("Using sample data")
-                        df = load_sample()
                 else:
-                    logger.warning("No API key or location, using sample data")
+                    logger.warning("No API key or coordinates set, using sample data")
                     df = load_sample()
             except Exception as api_error:
-                logger.error(f"Weather API error: {api_error}")
+                logger.error(f"Weather API error: {api_error}", exc_info=True)
                 logger.info("Falling back to sample data")
                 df = load_sample()
             
