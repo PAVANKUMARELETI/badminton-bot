@@ -102,8 +102,8 @@
 
 3. **Set secrets**
    ```powershell
-   fly secrets set TELEGRAM_BOT_TOKEN=8463771089:AAElsOdKnkxLXU2Dnyo3WcIof6HzyE4TvTs
-   fly secrets set OPENWEATHER_API_KEY=c9bff12eb91b0e17f64594137bbd16fd
+   fly secrets set TELEGRAM_BOT_TOKEN=your_bot_token_here
+   fly secrets set OPENWEATHER_API_KEY=your_api_key_here
    ```
 
 4. **Deploy**
@@ -136,8 +136,8 @@
 4. **Set environment variables**
    - In bash console:
      ```bash
-     export TELEGRAM_BOT_TOKEN=8463771089:AAElsOdKnkxLXU2Dnyo3WcIof6HzyE4TvTs
-     export OPENWEATHER_API_KEY=c9bff12eb91b0e17f64594137bbd16fd
+     export TELEGRAM_BOT_TOKEN=your_bot_token_here
+     export OPENWEATHER_API_KEY=your_api_key_here
      ```
 
 ⚠️ **Note**: Free tier has some limitations (CPU time)

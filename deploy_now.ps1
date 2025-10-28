@@ -13,9 +13,14 @@ railway init
 railway link
 
 # Set environment variables
-Write-Host "Setting environment variables..." -ForegroundColor Yellow
-railway variables set TELEGRAM_BOT_TOKEN="8463771089:AAElsOdKnkxLXU2Dnyo3WcIof6HzyE4TvTs"
-railway variables set OPENWEATHER_API_KEY="c9bff12eb91b0e17f64594137bbd16fd"
+Write-Host "🔧 Setting environment variables..." -ForegroundColor Yellow
+Write-Host "Please enter your Telegram Bot Token:" -ForegroundColor Cyan
+$TELEGRAM_BOT_TOKEN = Read-Host
+railway variables set TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
+
+Write-Host "Please enter your OpenWeather API Key:" -ForegroundColor Cyan
+$OPENWEATHER_API_KEY = Read-Host
+railway variables set OPENWEATHER_API_KEY="$OPENWEATHER_API_KEY"
 
 # Deploy
 Write-Host "Deploying..." -ForegroundColor Yellow
