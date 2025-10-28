@@ -43,8 +43,8 @@
    - Click "Variables" tab
    - Add:
      ```
-     TELEGRAM_BOT_TOKEN=8463771089:AAElsOdKnkxLXU2Dnyo3WcIof6HzyE4TvTs
-     OPENWEATHER_API_KEY=c9bff12eb91b0e17f64594137bbd16fd
+     TELEGRAM_BOT_TOKEN=your_bot_token_here
+     OPENWEATHER_API_KEY=your_api_key_here
      ```
 
 4. **Done!** ✅
