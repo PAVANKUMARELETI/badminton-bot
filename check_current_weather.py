@@ -1,12 +1,16 @@
 """Quick check of current weather at IIIT Lucknow"""
 import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 response = requests.get(
     'https://api.openweathermap.org/data/2.5/weather',
     params={
         'lat': 26.7984,
         'lon': 81.0241,
-        'appid': 'c9bff12eb91b0e17f64594137bbd16fd',
+        'appid': os.getenv('OPENWEATHER_API_KEY'),
         'units': 'metric'
     }
 )
