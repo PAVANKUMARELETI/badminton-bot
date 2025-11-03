@@ -211,6 +211,13 @@ Stay safe and enjoy playing! 🏸
                         weather_data_time = current_weather_df.index[0]
                         data_source = "live"
                         logger.info(f"Current weather: Wind {current_weather.get('wind_m_s', 0):.1f} m/s")
+                        
+                        # 📊 LOG DATA FOR FUTURE TRAINING
+                        try:
+                            from src.data.weather_logger import log_weather_data
+                            log_weather_data(current_weather_df, source="current")
+                        except Exception as log_error:
+                            logger.warning(f"Failed to log weather data: {log_error}")
                     else:
                         logger.warning("Could not fetch current weather")
                 else:
@@ -329,6 +336,14 @@ Stay safe and enjoy playing! 🏸
                     if weather_data is not None and not weather_data.empty:
                         logger.info(f"✅ Using REAL weather data from OpenWeatherMap: {len(weather_data)} hours")
                         data_source = "live"
+                        
+                        # 📊 LOG FORECAST DATA FOR FUTURE TRAINING
+                        try:
+                            from src.data.weather_logger import log_weather_data
+                            log_weather_data(weather_data, source="forecast")
+                        except Exception as log_error:
+                            logger.warning(f"Failed to log forecast data: {log_error}")
+                        
                         # Some API columns are non-numeric (e.g. 'weather' text). Prepare dataframe
                         df = weather_data.copy()
 

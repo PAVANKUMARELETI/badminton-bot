@@ -304,10 +304,13 @@ To achieve production-ready performance, the model needs to be trained on **real
 - Export as CSV with columns: `datetime, wind_m_s, wind_gust_m_s, temp, humidity, pressure`
 - Place in `data/raw/` and retrain
 
-**Option 3: Accumulate Forecast Data Over Time**
-- The bot saves current weather observations automatically
-- After 30+ days of operation, retrain on accumulated real data
-- This will provide location-specific patterns
+**Option 3: ✅ Automatic Data Collection (RECOMMENDED)**
+- **The bot automatically collects data** every time you use it!
+- Observations saved to `data/collected/weather_observations.csv`
+- After 30+ days, retrain with: `python scripts/check_data_collection.py --retrain`
+- Check progress anytime: `python scripts/check_data_collection.py`
+- **No manual work needed** - just use the bot normally!
+- See [DATA_COLLECTION.md](docs/DATA_COLLECTION.md) for details
 
 ### Expected Real-World Performance
 Once trained on real IIIT Lucknow data:
