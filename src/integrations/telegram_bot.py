@@ -202,14 +202,13 @@ Stay safe and enjoy playing! 🏸
                     weather_data = weather_api.get_hourly_forecast(
                         lat=self.current_lat,
                         lon=self.current_lon,
-                        hours=6
+                        hours=48
                     )
                     
                     if weather_data is not None and not weather_data.empty:
-                        logger.info(f"Using real weather data from OpenWeatherMap: {len(weather_data)} hours")
-                        # TODO: Convert weather_data to proper format for model
-                        # For now, fall back to sample data
-                        df = load_sample()
+                        logger.info(f"✅ Using REAL weather data from OpenWeatherMap: {len(weather_data)} hours")
+                        # Weather API data already has correct column names (wind_m_s, wind_gust_m_s, etc.)
+                        df = weather_data
                     else:
                         logger.warning("Could not fetch real weather data, using sample")
                         df = load_sample()
