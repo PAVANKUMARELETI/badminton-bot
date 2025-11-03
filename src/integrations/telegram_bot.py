@@ -192,9 +192,11 @@ Stay safe and enjoy playing! 🏸
             # Get forecast - try real weather data first, fall back to sample
             current_weather = None  # Store current weather details
             data_source = "sample"  # Track if using real or sample data
+            weather_data_time = None  # Store when weather data was fetched
             
             try:
                 from src.data.weather_api import OpenWeatherMapAPI
+                from datetime import datetime, timezone
                 
                 api_key = os.getenv("OPENWEATHER_API_KEY")
                 if api_key and self.current_lat and self.current_lon:
@@ -210,7 +212,10 @@ Stay safe and enjoy playing! 🏸
                         if current_weather_df is not None and not current_weather_df.empty:
                             # Extract current weather details
                             current_weather = current_weather_df.iloc[0].to_dict()
+                            # Store the timestamp from the weather data (when it was observed)
+                            weather_data_time = current_weather_df.index[0]
                             logger.info(f"Current weather: {current_weather}")
+                            logger.info(f"Weather data timestamp: {weather_data_time}")
                     except Exception as cw_error:
                         logger.warning(f"Could not fetch current weather: {cw_error}")
                     
@@ -275,7 +280,8 @@ Stay safe and enjoy playing! 🏸
                 forecast_result=forecast_result,
                 current_weather=current_weather,
                 data_source=data_source,
-                location=self.current_location
+                location=self.current_location,
+                weather_data_time=weather_data_time
             )
 
             # Add action buttons
@@ -485,7 +491,8 @@ Stay safe and enjoy playing! 🏸
         forecast_result: dict,
         current_weather: dict = None,
         data_source: str = "sample",
-        location: str = "Unknown"
+        location: str = "Unknown",
+        weather_data_time = None
     ) -> str:
         """
         Format forecast result for Telegram with detailed weather info.
@@ -496,11 +503,12 @@ Stay safe and enjoy playing! 🏸
             current_weather: Current weather data from API (optional)
             data_source: "live" or "sample"
             location: Location name
+            weather_data_time: Timestamp when weather data was observed
 
         Returns:
             Formatted message string
         """
-        from datetime import datetime
+        from datetime import datetime, timezone, timedelta
         
         decision = decision_result["decision"]
         details = decision_result["details"]
@@ -514,15 +522,48 @@ Stay safe and enjoy playing! 🏸
         source_emoji = "🌐" if data_source == "live" else "📊"
         source_text = "Live Weather Data" if data_source == "live" else "Sample Data"
 
+        # Get current time in IST (UTC+5:30)
+        ist = timezone(timedelta(hours=5, minutes=30))
+        current_time_ist = datetime.now(timezone.utc).astimezone(ist)
+        
         # Build message
         lines = [
             f"{emoji} *{decision}* {emoji}",
             "",
             f"📍 *Location:* {location}",
             f"{source_emoji} *Data Source:* {source_text}",
-            f"🕒 *Updated:* {datetime.now().strftime('%I:%M %p')}",
-            "",
+            f"🕒 *Checked:* {current_time_ist.strftime('%I:%M %p IST')}",
         ]
+        
+        # If we have weather data timestamp, show when it was observed
+        if weather_data_time is not None:
+            try:
+                # Convert weather data time to IST
+                if hasattr(weather_data_time, 'tz_localize'):
+                    weather_time_ist = weather_data_time.tz_localize('UTC').tz_convert(ist)
+                elif hasattr(weather_data_time, 'astimezone'):
+                    weather_time_ist = weather_data_time.astimezone(ist)
+                else:
+                    # If it's a naive datetime, assume UTC
+                    weather_time_ist = weather_data_time.replace(tzinfo=timezone.utc).astimezone(ist)
+                
+                # Calculate how many minutes ago the data was observed
+                time_diff = current_time_ist - weather_time_ist
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                
+                if minutes_ago < 1:
+                    freshness = "just now"
+                elif minutes_ago < 60:
+                    freshness = f"{minutes_ago} min ago"
+                else:
+                    hours_ago = minutes_ago // 60
+                    freshness = f"{hours_ago}h {minutes_ago % 60}m ago"
+                
+                lines.append(f"📊 *Data Age:* {freshness}")
+            except Exception as e:
+                logger.warning(f"Error formatting weather data time: {e}")
+        
+        lines.append("")
         
         # Add current weather conditions if available
         if current_weather:

@@ -211,6 +211,22 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # Also create lags for wind gusts if available
     if "wind_gust_m_s" in df.columns:
         df = create_lag_features(df, "wind_gust_m_s", LAG_HOURS[:3])  # Fewer lags for gusts
+    
+    # Create lags for temperature (temperature gradients affect wind)
+    if "temp" in df.columns:
+        df = create_lag_features(df, "temp", LAG_HOURS[:4])  # 1h, 2h, 3h, 6h lags
+        logger.info("Added temperature lag features")
+    
+    # Create lags for humidity (affects air density and wind)
+    if "humidity" in df.columns:
+        df = create_lag_features(df, "humidity", LAG_HOURS[:3])  # 1h, 2h, 3h lags
+        logger.info("Added humidity lag features")
+    
+    # Create temperature gradient features (temp change over time)
+    if "temp" in df.columns:
+        df["temp_change_1h"] = df["temp"].diff(1)
+        df["temp_change_3h"] = df["temp"].diff(3)
+        logger.info("Added temperature gradient features")
 
     # Step 4: Create cyclical time features
     df = create_cyclical_features(df)
@@ -258,6 +274,13 @@ def get_feature_columns(df: pd.DataFrame, exclude_target: bool = True) -> List[s
     # Exclude original wind_dir_deg (we use u/v components instead)
     exclude_cols.add("wind_dir_deg")
 
+    # Exclude base temp and humidity (we use their lag features instead for better temporal info)
+    # But only if lag features exist
+    if "temp_lag_1h" in df.columns:
+        exclude_cols.add("temp")
+    if "humidity_lag_1h" in df.columns:
+        exclude_cols.add("humidity")
+
     # Also exclude precipitation (often too sparse for hourly forecasting)
     if "precip_mm" in df.columns:
         exclude_cols.add("precip_mm")
@@ -265,4 +288,5 @@ def get_feature_columns(df: pd.DataFrame, exclude_target: bool = True) -> List[s
     # Get all numeric columns that are not in exclude list
     feature_cols = [col for col in df.columns if col not in exclude_cols]
 
+    logger.info(f"Selected {len(feature_cols)} features for modeling: {', '.join(feature_cols[:10])}...")
     return feature_cols
