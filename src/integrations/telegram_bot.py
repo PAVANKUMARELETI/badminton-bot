@@ -300,12 +300,16 @@ Stay safe and enjoy playing! 🏸
     async def button_callback(self, update, context):
         """Handle button clicks from inline keyboards."""
         query = update.callback_query
-        await query.answer()  # Acknowledge the button click
+        
+        # IMPORTANT: Always answer callback queries to remove loading state
+        await query.answer()
         
         callback_data = query.data
+        logger.info(f"Button clicked: {callback_data}")
         
         # Handle different button actions
         if callback_data == "forecast":
+            logger.info("Handling forecast button click")
             # Trigger forecast command for button click
             await self.forecast_command(update, context)
             
@@ -615,8 +619,8 @@ Currently using sample data. In production, this will use real weather station d
 
         logger.info("Bot is ready! Press Ctrl+C to stop.")
 
-        # Run the bot
-        self.application.run_polling(allowed_updates=["message"])
+        # Run the bot - IMPORTANT: Must include callback_query for buttons to work!
+        self.application.run_polling(allowed_updates=["message", "callback_query"])
 
 
 def main():
