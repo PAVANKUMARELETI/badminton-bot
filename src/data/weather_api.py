@@ -185,6 +185,15 @@ class OpenWeatherMapAPI(WeatherAPIBase):
             df = pd.DataFrame(records)
             df.set_index("timestamp", inplace=True)
 
+            # Normalize and sanitize columns before returning so downstream
+            # preprocessing (resample/mean) does not fail on text fields.
+            if "wind_direction" in df.columns and "wind_dir_deg" not in df.columns:
+                df = df.rename(columns={"wind_direction": "wind_dir_deg"})
+
+            import numpy as _np
+            # Keep only numeric columns (drop 'weather', 'source' text fields)
+            df = df.select_dtypes(include=[_np.number])
+
             logger.info(f"Fetched {len(df)} hourly forecasts for ({lat}, {lon})")
             return df
 
