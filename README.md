@@ -284,11 +284,38 @@ pytest --cov=src --cov-report=html
 
 ## Model Performance
 
-On the synthetic dataset:
+### Current Status: ⚠️ Trained on Synthetic Data
+
+The current deployed model is trained on **synthetic/sample data** for demonstration purposes:
 - **Baseline (Persistence)**: MAE ~0.3 m/s, RMSE ~0.45 m/s
 - **LSTM**: MAE ~0.25 m/s, RMSE ~0.38 m/s (after 50 epochs)
 
-These metrics are for demonstration. Real-world performance depends on actual weather data quality and stationarity.
+### 🎯 Next Step: Train on Real Historical Data
+
+To achieve production-ready performance, the model needs to be trained on **real historical weather data** from IIIT Lucknow:
+
+**Option 1: OpenWeatherMap Historical API (Paid)**
+- Requires paid subscription for historical data access
+- Can fetch years of hourly observations
+- Run: `python scripts/retrain_on_real_data.py` (requires historical API key)
+
+**Option 2: Local Weather Station Data**
+- Collect data from a local weather station
+- Export as CSV with columns: `datetime, wind_m_s, wind_gust_m_s, temp, humidity, pressure`
+- Place in `data/raw/` and retrain
+
+**Option 3: Accumulate Forecast Data Over Time**
+- The bot saves current weather observations automatically
+- After 30+ days of operation, retrain on accumulated real data
+- This will provide location-specific patterns
+
+### Expected Real-World Performance
+Once trained on real IIIT Lucknow data:
+- **MAE**: 0.4-0.6 m/s (1.4-2.2 km/h) for 1h forecasts
+- **RMSE**: 0.6-0.8 m/s (2.2-2.9 km/h) for 1h forecasts
+- Performance degrades for longer horizons (3h, 6h)
+
+> **Note**: The bot currently works with live OpenWeatherMap forecasts for decision-making. The LSTM model provides additional context but isn't strictly required for the NOW mode, which uses current weather conditions directly.
 
 ## Citation
 
