@@ -108,12 +108,16 @@ BACKTEST_STEP_SIZE = 24  # Hours (1 day)
 # DECISION THRESHOLDS
 # ============================================================================
 
+# BWF (Badminton World Federation) AirBadminton Recommendations:
+# - Optimal wind: 6-12 km/h (1.67-3.33 m/s)
+# - Maximum safe: 12 km/h (3.33 m/s)
+# 
 # These are defaults; the actual values are loaded from thresholds.json
 DEFAULT_THRESHOLDS = {
     "speed_unit": "m/s",
     "play": {
-        "median_max_m_s": 1.5,
-        "q90_max_m_s": 2.5,
+        "median_max_m_s": 3.33,  # 12 km/h - BWF maximum for AirBadminton
+        "q90_max_m_s": 5.0,       # ~18 km/h - Allow some gusts above median
         "prob_over_3m_s_max": 0.1,
     },
 }

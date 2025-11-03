@@ -82,16 +82,19 @@ class TelegramBot:
         welcome_message = f"""
 🏸 *Welcome to Badminton Wind Forecast Bot!* 🌬️
 
-I help you decide if it's safe to play badminton based on wind conditions at IIIT Lucknow campus.
+I help you decide if it's safe to play badminton based on wind conditions.
 
-📍 *Location:* {self.current_location}
+📍 *Current Location:* {self.current_location}
 🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
 
-*🎯 Quick Start:*
-Just type: "Can I play?" or "Should I play badminton?"
+*🎯 What do you want to know?*
+
+🏸 *Can I play NOW?* - Check current weather conditions
+📊 *Future Forecast* - See predictions for next 6 hours
 
 *📋 Commands:*
-/forecast - Get detailed wind forecast
+/now - Check if you can play right now
+/forecast - Get future wind predictions
 /location - Change location
 /help - Show help message
 
@@ -101,11 +104,11 @@ Just type: "Can I play?" or "Should I play badminton?"
         # Create inline keyboard with buttons
         keyboard = [
             [
-                InlineKeyboardButton("🏸 Can I Play?", callback_data="forecast"),
-                InlineKeyboardButton("📊 Forecast", callback_data="forecast")
+                InlineKeyboardButton("🏸 Can I Play NOW?", callback_data="play_now"),
+                InlineKeyboardButton("📊 Future Forecast", callback_data="forecast")
             ],
             [
-                InlineKeyboardButton("📍 Location", callback_data="location"),
+                InlineKeyboardButton("📍 Change Location", callback_data="location"),
                 InlineKeyboardButton("❓ Help", callback_data="help")
             ]
         ]
@@ -122,41 +125,44 @@ Just type: "Can I play?" or "Should I play badminton?"
         help_message = """
 🏸 *How to Use This Bot* 🏸
 
-*💬 Option 1: Just Type*
-Send me any message like:
-• "Can I play?"
-• "Weather check"
-• "Is it windy?"
-• "Should I play badminton?"
+*🎯 Two Ways to Check:*
 
-*⌨️ Option 2: Use Commands*
-/forecast - Get detailed wind forecast
+*1️⃣ Can I Play NOW?*
+Checks CURRENT weather conditions
+✅ Perfect if you want to play immediately
+📊 Decision based on current wind speed
+💨 Shows real-time wind data
+
+*2️⃣ Future Forecast*
+Shows predictions for next 1, 3, and 6 hours
+📈 Perfect for planning ahead
+🔮 Uses AI model to predict wind patterns
+🌤️ Includes weather context (temp, humidity)
+
+*📋 Commands:*
+/now - Quick check of current conditions
+/forecast - Future wind predictions
 /location <city> - Change location (e.g., /location Delhi)
-/help - Show this message
+/help - Show this help message
 /start - Main menu
 
-*🔘 Option 3: Click Buttons*
-Tap any button below for quick actions!
+* Safety Thresholds (BWF Standards):*
+ Maximum wind: < 3.33 m/s (12 km/h)
+ Optimal range: 1.67-3.33 m/s (6-12 km/h)
+ Maximum gusts: < 5.0 m/s (18 km/h)
 
-*📊 Understanding the Forecast:*
-✅ *PLAY* - Wind is within safe limits
-❌ *DON'T PLAY* - Wind too strong for badminton
-
-*⏱️ Forecast Horizons:*
-• 1h - Next hour forecast
-• 3h - Next 3 hours forecast
-• 6h - Next 6 hours forecast
-
-*🌬️ Safety Thresholds:*
-• Safe median wind: < 1.5 m/s
-• Safe max gust (Q90): < 3.5 m/s
+*Based on Badminton World Federation (BWF) AirBadminton recommendations*
+*� Understanding Results:*
+✅ PLAY - Conditions are safe
+❌ DON'T PLAY - Wind too strong for badminton
 
 Stay safe and enjoy playing! 🏸
         """
         
         # Add quick action buttons
         keyboard = [
-            [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+            [InlineKeyboardButton("🏸 Can I Play NOW?", callback_data="play_now")],
+            [InlineKeyboardButton("📊 Future Forecast", callback_data="forecast")],
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="start")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -166,6 +172,100 @@ Stay safe and enjoy playing! 🏸
             parse_mode="Markdown",
             reply_markup=reply_markup
         )
+
+    async def play_now_command(self, update, context):
+        """Handle /now command - check current weather conditions only."""
+        try:
+            logger.info("Play NOW command received")
+
+            # Determine if this is from a button click or direct message
+            if update.callback_query:
+                query = update.callback_query
+                message = query.message
+                thinking_msg = await query.edit_message_text("🌤️ Checking current weather...")
+            else:
+                message = update.message
+                thinking_msg = await message.reply_text("🌤️ Checking current weather...")
+
+            # Get current weather data
+            current_weather = None
+            data_source = "sample"
+            weather_data_time = None
+            
+            try:
+                from src.data.weather_api import OpenWeatherMapAPI
+                from datetime import datetime, timezone
+                
+                api_key = os.getenv("OPENWEATHER_API_KEY")
+                if api_key and self.current_lat and self.current_lon:
+                    logger.info(f"Fetching current weather for {self.current_location}")
+                    weather_api = OpenWeatherMapAPI(api_key)
+                    
+                    current_weather_df = weather_api.get_current_weather(
+                        lat=self.current_lat,
+                        lon=self.current_lon
+                    )
+                    
+                    if current_weather_df is not None and not current_weather_df.empty:
+                        current_weather = current_weather_df.iloc[0].to_dict()
+                        weather_data_time = current_weather_df.index[0]
+                        data_source = "live"
+                        logger.info(f"Current weather: Wind {current_weather.get('wind_m_s', 0):.1f} m/s")
+                    else:
+                        logger.warning("Could not fetch current weather")
+                else:
+                    logger.warning("No API key or coordinates set")
+                    
+            except Exception as api_error:
+                logger.error(f"Weather API error: {api_error}", exc_info=True)
+
+            # Make decision based on current conditions
+            if current_weather and data_source == "live":
+                wind_speed = current_weather.get('wind_m_s', 0)
+                wind_gust = current_weather.get('wind_gust_m_s', 0)
+                
+                # BWF (Badminton World Federation) AirBadminton standards:
+                # Optimal: 6-12 km/h (1.67-3.33 m/s), Maximum: 12 km/h (3.33 m/s)
+                safe_median_wind = 3.33  # 12 km/h - BWF maximum
+                safe_gust_wind = 5.0     # ~18 km/h - Allow some margin for gusts
+                
+                can_play = (wind_speed <= safe_median_wind and wind_gust <= safe_gust_wind)
+                
+                response = self._format_current_weather_response(
+                    can_play=can_play,
+                    current_weather=current_weather,
+                    data_source=data_source,
+                    location=self.current_location,
+                    weather_data_time=weather_data_time,
+                    safe_median_wind=safe_median_wind,
+                    safe_gust_wind=safe_gust_wind
+                )
+            else:
+                response = "❌ Unable to fetch current weather data. Please try again later."
+
+            # Add action buttons
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔄 Refresh", callback_data="play_now"),
+                    InlineKeyboardButton("📊 See Forecast", callback_data="forecast")
+                ],
+                [InlineKeyboardButton("🔙 Main Menu", callback_data="start")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            # Send or edit response
+            if update.callback_query:
+                await query.edit_message_text(response, parse_mode="Markdown", reply_markup=reply_markup)
+            else:
+                await thinking_msg.edit_text(response, parse_mode="Markdown", reply_markup=reply_markup)
+
+        except Exception as e:
+            logger.error(f"Error in play_now_command: {e}", exc_info=True)
+            error_msg = "Sorry, I encountered an error. Please try again later."
+            if update.callback_query:
+                await update.callback_query.edit_message_text(error_msg)
+            else:
+                await update.message.reply_text(error_msg)
 
     async def forecast_command(self, update, context):
         """Handle /forecast command."""
@@ -348,7 +448,12 @@ Stay safe and enjoy playing! 🏸
         logger.info(f"Button clicked: {callback_data}")
         
         # Handle different button actions
-        if callback_data == "forecast":
+        if callback_data == "play_now":
+            logger.info("Handling play NOW button click")
+            # Trigger play_now command for button click
+            await self.play_now_command(update, context)
+            
+        elif callback_data == "forecast":
             logger.info("Handling forecast button click")
             # Trigger forecast command for button click
             await self.forecast_command(update, context)
@@ -358,21 +463,26 @@ Stay safe and enjoy playing! 🏸
             welcome_message = f"""
 🏸 *Welcome to Badminton Wind Forecast Bot!* 🌬️
 
-I help you decide if it's safe to play badminton based on wind conditions at IIIT Lucknow campus.
+I help you decide if it's safe to play badminton based on wind conditions.
 
-📍 *Location:* {self.current_location}
+📍 *Current Location:* {self.current_location}
 🌍 *Coordinates:* {self.current_lat}°N, {self.current_lon}°E
+
+*🎯 What do you want to know?*
+
+🏸 *Can I play NOW?* - Check current weather
+📊 *Future Forecast* - See predictions for next 6 hours
 
 Use the buttons below to get started! 👇
             """
             
             keyboard = [
                 [
-                    InlineKeyboardButton("🏸 Can I Play?", callback_data="forecast"),
-                    InlineKeyboardButton("📊 Forecast", callback_data="forecast")
+                    InlineKeyboardButton("🏸 Can I Play NOW?", callback_data="play_now"),
+                    InlineKeyboardButton("📊 Future Forecast", callback_data="forecast")
                 ],
                 [
-                    InlineKeyboardButton("📍 Location", callback_data="location"),
+                    InlineKeyboardButton("📍 Change Location", callback_data="location"),
                     InlineKeyboardButton("❓ Help", callback_data="help")
                 ]
             ]
@@ -389,30 +499,38 @@ Use the buttons below to get started! 👇
             help_message = """
 🏸 *How to Use This Bot* 🏸
 
-*Quick Check:*
-Just tap the "Can I Play?" button or send any message like:
-• "Can I play?"
-• "Weather check"
-• "Is it windy?"
+*🎯 Two Ways to Check:*
 
-*Understanding the Forecast:*
-✅ PLAY - Wind is within safe limits
+*1️⃣ Can I Play NOW?*
+Checks CURRENT weather conditions
+✅ Perfect if you want to play immediately
+📊 Decision based on current wind speed
+
+*2️⃣ Future Forecast*
+Shows predictions for next 1, 3, and 6 hours
+📈 Perfect for planning ahead
+🔮 Uses AI model to predict wind patterns
+
+*📋 Commands:*
+/now - Quick check of current conditions
+/forecast - Future wind predictions
+/location - Change your location
+/help - Show this help message
+
+*🌬️ Safety Thresholds:*
+• Safe wind speed: < 1.5 m/s (5.4 km/h)
+• Safe wind gusts: < 3.5 m/s (12.6 km/h)
+
+*💡 Understanding Results:*
+✅ PLAY - Conditions are safe
 ❌ DON'T PLAY - Wind too strong for badminton
-
-*Horizons:*
-• 1h - Next hour forecast
-• 3h - Next 3 hours forecast
-• 6h - Next 6 hours forecast
-
-*Thresholds:*
-• Safe wind: < 1.5 m/s (median)
-• Max gust: < 3.5 m/s (90th percentile)
 
 Stay safe and enjoy playing! 🏸
             """
             
             keyboard = [
-                [InlineKeyboardButton("🏸 Get Forecast", callback_data="forecast")],
+                [InlineKeyboardButton("🏸 Can I Play NOW?", callback_data="play_now")],
+                [InlineKeyboardButton("📊 Future Forecast", callback_data="forecast")],
                 [InlineKeyboardButton("🔙 Back to Menu", callback_data="start")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -623,6 +741,136 @@ Stay safe and enjoy playing! 🏸
 
         return "\n".join(lines)
 
+    def _format_current_weather_response(
+        self,
+        can_play: bool,
+        current_weather: dict,
+        data_source: str,
+        location: str,
+        weather_data_time,
+        safe_median_wind: float,
+        safe_gust_wind: float
+    ) -> str:
+        """
+        Format current weather conditions for immediate play decision.
+
+        Args:
+            can_play: Whether it's safe to play now
+            current_weather: Current weather data from API
+            data_source: "live" or "sample"
+            location: Location name
+            weather_data_time: Timestamp when weather data was observed
+            safe_median_wind: Safe wind speed threshold
+            safe_gust_wind: Safe gust threshold
+
+        Returns:
+            Formatted message string
+        """
+        from datetime import datetime, timezone, timedelta
+
+        # Emoji for decision
+        emoji = "✅" if can_play else "❌"
+        decision_text = "PLAY NOW" if can_play else "DON'T PLAY NOW"
+        
+        # Data source indicator
+        source_emoji = "🌐" if data_source == "live" else "📊"
+        source_text = "Live Weather Data" if data_source == "live" else "Sample Data"
+
+        # Get current time in IST (UTC+5:30)
+        ist = timezone(timedelta(hours=5, minutes=30))
+        current_time_ist = datetime.now(timezone.utc).astimezone(ist)
+        
+        # Build message
+        lines = [
+            f"{emoji} *{decision_text}* {emoji}",
+            "",
+            f"📍 *Location:* {location}",
+            f"{source_emoji} *Data Source:* {source_text}",
+            f"🕒 *Current Time:* {current_time_ist.strftime('%I:%M %p IST')}",
+        ]
+        
+        # Add data freshness
+        if weather_data_time is not None:
+            try:
+                if hasattr(weather_data_time, 'tz_localize'):
+                    weather_time_ist = weather_data_time.tz_localize('UTC').tz_convert(ist)
+                elif hasattr(weather_data_time, 'astimezone'):
+                    weather_time_ist = weather_data_time.astimezone(ist)
+                else:
+                    weather_time_ist = weather_data_time.replace(tzinfo=timezone.utc).astimezone(ist)
+                
+                time_diff = current_time_ist - weather_time_ist
+                minutes_ago = int(time_diff.total_seconds() / 60)
+                
+                if minutes_ago < 1:
+                    freshness = "just now"
+                elif minutes_ago < 60:
+                    freshness = f"{minutes_ago} min ago"
+                else:
+                    hours_ago = minutes_ago // 60
+                    freshness = f"{hours_ago}h {minutes_ago % 60}m ago"
+                
+                lines.append(f"📊 *Data Age:* {freshness}")
+            except Exception as e:
+                logger.warning(f"Error formatting weather data time: {e}")
+        
+        lines.append("")
+        lines.append("*🌤️ Current Weather Conditions:*")
+        
+        # Wind (most important for decision)
+        wind_speed = current_weather.get('wind_m_s', 0)
+        wind_gust = current_weather.get('wind_gust_m_s', 0)
+        
+        wind_emoji = "✅" if wind_speed <= safe_median_wind else "⚠️"
+        gust_emoji = "✅" if wind_gust <= safe_gust_wind else "⚠️"
+        
+        lines.append(f"{wind_emoji} *Wind Speed:* {wind_speed:.1f} m/s ({wind_speed*3.6:.1f} km/h)")
+        lines.append(f"{gust_emoji} *Wind Gusts:* {wind_gust:.1f} m/s ({wind_gust*3.6:.1f} km/h)")
+        
+        # Wind direction
+        if 'wind_dir_deg' in current_weather:
+            wind_dir = current_weather['wind_dir_deg']
+            directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+            idx = int((wind_dir + 22.5) / 45) % 8
+            lines.append(f"🧭 *Direction:* {directions[idx]} ({wind_dir:.0f}°)")
+        
+        lines.append("")
+        
+        # Additional weather info
+        if 'temp' in current_weather:
+            temp = current_weather['temp']
+            lines.append(f"🌡️ Temperature: {temp:.1f}°C")
+        
+        if 'humidity' in current_weather:
+            humidity = current_weather['humidity']
+            lines.append(f"💧 Humidity: {humidity:.0f}%")
+        
+        if 'pressure' in current_weather:
+            pressure = current_weather['pressure']
+            lines.append(f"🔽 Pressure: {pressure:.0f} hPa")
+        
+        lines.append("")
+        
+        # Decision explanation
+        if can_play:
+            lines.append("✅ *Good news!* Current wind conditions are safe for outdoor badminton.")
+        else:
+            reasons = []
+            if wind_speed > safe_median_wind:
+                reasons.append(f"Wind speed {wind_speed:.1f} m/s > {safe_median_wind} m/s")
+            if wind_gust > safe_gust_wind:
+                reasons.append(f"Wind gusts {wind_gust:.1f} m/s > {safe_gust_wind} m/s")
+            
+            lines.append("⚠️ *Current conditions are not ideal:*")
+            for reason in reasons:
+                lines.append(f"  • {reason}")
+        
+        lines.append("")
+        lines.append("_💡 Tip: Want to plan ahead? Check the Future Forecast!_")
+        lines.append(f"_Safe thresholds: Wind < {safe_median_wind} m/s | Gusts < {safe_gust_wind} m/s_")
+
+        return "\n".join(lines)
+
     async def settings_command(self, update, context):
         """Handle /settings command."""
         settings_message = """
@@ -735,6 +983,7 @@ Currently using sample data. In production, this will use real weather station d
         # Add command handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
+        self.application.add_handler(CommandHandler("now", self.play_now_command))
         self.application.add_handler(CommandHandler("forecast", self.forecast_command))
         self.application.add_handler(CommandHandler("location", self.location_command))
         self.application.add_handler(CommandHandler("settings", self.settings_command))
@@ -780,3 +1029,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

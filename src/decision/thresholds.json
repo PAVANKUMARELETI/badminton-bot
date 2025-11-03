@@ -1,8 +1,8 @@
 {
   "speed_unit": "m/s",
   "play": {
-    "median_max_m_s": 1.5,
-    "q90_max_m_s": 2.5,
+    "median_max_m_s": 3.33,
+    "q90_max_m_s": 5.0,
     "prob_over_3m_s_max": 0.1
   }
 }
