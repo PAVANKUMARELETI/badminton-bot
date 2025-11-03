@@ -190,6 +190,9 @@ Stay safe and enjoy playing! 🏸
                 thinking_msg = await message.reply_text("🤔 Analyzing wind conditions...")
 
             # Get forecast - try real weather data first, fall back to sample
+            current_weather = None  # Store current weather details
+            data_source = "sample"  # Track if using real or sample data
+            
             try:
                 from src.data.weather_api import OpenWeatherMapAPI
                 
@@ -197,6 +200,19 @@ Stay safe and enjoy playing! 🏸
                 if api_key and self.current_lat and self.current_lon:
                     logger.info(f"Fetching real weather data for {self.current_location} ({self.current_lat}, {self.current_lon})")
                     weather_api = OpenWeatherMapAPI(api_key)
+                    
+                    # Fetch current weather for detailed display
+                    try:
+                        current_weather_df = weather_api.get_current_weather(
+                            lat=self.current_lat,
+                            lon=self.current_lon
+                        )
+                        if current_weather_df is not None and not current_weather_df.empty:
+                            # Extract current weather details
+                            current_weather = current_weather_df.iloc[0].to_dict()
+                            logger.info(f"Current weather: {current_weather}")
+                    except Exception as cw_error:
+                        logger.warning(f"Could not fetch current weather: {cw_error}")
                     
                     # Use coordinates for accurate location-based data
                     weather_data = weather_api.get_hourly_forecast(
@@ -207,8 +223,23 @@ Stay safe and enjoy playing! 🏸
                     
                     if weather_data is not None and not weather_data.empty:
                         logger.info(f"✅ Using REAL weather data from OpenWeatherMap: {len(weather_data)} hours")
-                        # Weather API data already has correct column names (wind_m_s, wind_gust_m_s, etc.)
-                        df = weather_data
+                        data_source = "live"
+                        # Some API columns are non-numeric (e.g. 'weather' text). Prepare dataframe
+                        df = weather_data.copy()
+
+                        # Normalize column names the preprocess expects
+                        if "wind_direction" in df.columns and "wind_dir_deg" not in df.columns:
+                            df = df.rename(columns={"wind_direction": "wind_dir_deg"})
+
+                        # Drop any non-numeric columns (e.g. 'weather', 'source') to avoid aggregation errors
+                        import numpy as _np
+                        df = df.select_dtypes(include=[_np.number])
+
+                        # Ensure target column exists
+                        if "wind_m_s" not in df.columns:
+                            logger.warning("Real weather data missing 'wind_m_s' column - falling back to sample")
+                            df = load_sample()
+                            data_source = "sample"
                     else:
                         logger.warning("Could not fetch real weather data, using sample")
                         df = load_sample()
@@ -241,7 +272,10 @@ Stay safe and enjoy playing! 🏸
             # Format response
             response = self._format_forecast_response(
                 decision_result=decision_result,
-                forecast_result=forecast_result
+                forecast_result=forecast_result,
+                current_weather=current_weather,
+                data_source=data_source,
+                location=self.current_location
             )
 
             # Add action buttons
@@ -445,17 +479,29 @@ Stay safe and enjoy playing! 🏸
                     reply_markup=reply_markup
                 )
 
-    def _format_forecast_response(self, decision_result: dict, forecast_result: dict) -> str:
+    def _format_forecast_response(
+        self, 
+        decision_result: dict, 
+        forecast_result: dict,
+        current_weather: dict = None,
+        data_source: str = "sample",
+        location: str = "Unknown"
+    ) -> str:
         """
-        Format forecast result for Telegram.
+        Format forecast result for Telegram with detailed weather info.
 
         Args:
             decision_result: Decision output from decide_play()
             forecast_result: Forecast output from make_forecast()
+            current_weather: Current weather data from API (optional)
+            data_source: "live" or "sample"
+            location: Location name
 
         Returns:
             Formatted message string
         """
+        from datetime import datetime
+        
         decision = decision_result["decision"]
         details = decision_result["details"]
         median_forecast = forecast_result["median"]
@@ -463,13 +509,57 @@ Stay safe and enjoy playing! 🏸
 
         # Emoji for decision
         emoji = "✅" if decision == "PLAY" else "❌"
+        
+        # Data source indicator
+        source_emoji = "🌐" if data_source == "live" else "📊"
+        source_text = "Live Weather Data" if data_source == "live" else "Sample Data"
 
         # Build message
         lines = [
             f"{emoji} *{decision}* {emoji}",
             "",
-            "*Wind Speed Predictions:*",
+            f"📍 *Location:* {location}",
+            f"{source_emoji} *Data Source:* {source_text}",
+            f"🕒 *Updated:* {datetime.now().strftime('%I:%M %p')}",
+            "",
         ]
+        
+        # Add current weather conditions if available
+        if current_weather:
+            lines.append("*🌤️ Current Conditions:*")
+            
+            # Wind
+            wind_speed = current_weather.get('wind_m_s', 0)
+            wind_gust = current_weather.get('wind_gust_m_s', 0)
+            lines.append(f"💨 Wind: {wind_speed:.1f} m/s ({wind_speed*3.6:.1f} km/h)")
+            lines.append(f"💨 Gusts: {wind_gust:.1f} m/s ({wind_gust*3.6:.1f} km/h)")
+            
+            # Wind direction
+            if 'wind_dir_deg' in current_weather:
+                wind_dir = current_weather['wind_dir_deg']
+                # Convert degrees to compass direction
+                directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+                idx = int((wind_dir + 22.5) / 45) % 8
+                lines.append(f"🧭 Direction: {directions[idx]} ({wind_dir:.0f}°)")
+            
+            # Temperature
+            if 'temp' in current_weather:
+                temp = current_weather['temp']
+                lines.append(f"🌡️ Temperature: {temp:.1f}°C")
+            
+            # Humidity
+            if 'humidity' in current_weather:
+                humidity = current_weather['humidity']
+                lines.append(f"💧 Humidity: {humidity:.0f}%")
+            
+            # Pressure
+            if 'pressure' in current_weather:
+                pressure = current_weather['pressure']
+                lines.append(f"🔽 Pressure: {pressure:.0f} hPa")
+            
+            lines.append("")
+
+        lines.append("*🔮 Wind Forecast:*")
 
         # Add horizon forecasts
         for horizon in ["1h", "3h", "6h"]:
