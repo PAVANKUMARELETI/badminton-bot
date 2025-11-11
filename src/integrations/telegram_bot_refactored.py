@@ -25,6 +25,8 @@ import logging
 import os
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
+import csv
 
 # Sentry error tracking
 try:
@@ -127,7 +129,12 @@ class BadmintonBot:
         self.current_lon = lon
         self.current_location = name
         
+        # Weather logging setup
+        self.log_dir = Path("data/logged_weather")
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        
         logger.info(f"Bot initialized for {self.current_location}")
+        logger.info(f"Weather data will be logged to {self.log_dir}")
 
     def _load_model(self):
         """Lazy load LSTM model."""
@@ -139,6 +146,59 @@ class BadmintonBot:
             except Exception as e:
                 logger.error(f"Failed to load model: {e}")
                 self.model = None
+
+    async def _log_weather_data(self, context: ContextTypes.DEFAULT_TYPE):
+        """Background job to log weather data every hour."""
+        try:
+            # Fetch current weather
+            current_weather, data_source, weather_time = fetch_current_weather(
+                self.current_lat,
+                self.current_lon,
+                self.current_location
+            )
+            
+            if not current_weather or data_source != "live":
+                logger.warning("No live weather data available for logging")
+                return
+            
+            # Prepare log file path (one file per day)
+            today = datetime.now().strftime("%Y-%m-%d")
+            log_file = self.log_dir / f"weather_{today}.csv"
+            
+            # Check if file exists to determine if we need headers
+            file_exists = log_file.exists()
+            
+            # Write data
+            with open(log_file, 'a', newline='', encoding='utf-8') as f:
+                fieldnames = [
+                    'timestamp', 'location', 'latitude', 'longitude',
+                    'temperature_c', 'humidity_percent', 'pressure_hpa',
+                    'wind_m_s', 'wind_gust_m_s', 'data_source'
+                ]
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                
+                if not file_exists:
+                    writer.writeheader()
+                
+                # Prepare row
+                row = {
+                    'timestamp': weather_time.isoformat() if weather_time else datetime.now().isoformat(),
+                    'location': self.current_location,
+                    'latitude': self.current_lat,
+                    'longitude': self.current_lon,
+                    'temperature_c': current_weather.get('temperature_c', ''),
+                    'humidity_percent': current_weather.get('humidity_percent', ''),
+                    'pressure_hpa': current_weather.get('pressure_hpa', ''),
+                    'wind_m_s': current_weather.get('wind_m_s', ''),
+                    'wind_gust_m_s': current_weather.get('wind_gust_m_s', ''),
+                    'data_source': data_source
+                }
+                
+                writer.writerow(row)
+                logger.info(f"✅ Weather data logged to {log_file}")
+                
+        except Exception as e:
+            logger.error(f"Failed to log weather data: {e}")
 
     # ==================== COMMAND HANDLERS ====================
 
@@ -398,6 +458,16 @@ class BadmintonBot:
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.forecast_command)
         )
+
+        # Add weather logging job (runs every hour)
+        job_queue = self.application.job_queue
+        job_queue.run_repeating(
+            self._log_weather_data,
+            interval=3600,  # 1 hour in seconds
+            first=10,  # Start after 10 seconds
+            name="weather_logger"
+        )
+        logger.info("✅ Weather logging job scheduled (every 1 hour)")
 
         logger.info("Bot ready! Press Ctrl+C to stop.")
         
