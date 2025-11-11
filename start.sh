@@ -19,6 +19,6 @@ else
     echo "✅ Model found at experiments/latest/model.keras"
 fi
 
-# Start the bot
-echo "🤖 Starting Telegram bot..."
-python -m src.integrations.telegram_bot
+# Start the refactored bot with error tracking
+echo "🤖 Starting Telegram bot (refactored with Sentry)..."
+python -m src.integrations.telegram_bot_refactored

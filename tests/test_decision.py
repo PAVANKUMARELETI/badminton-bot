@@ -33,17 +33,17 @@ def test_decide_play_safe_conditions():
 
 
 def test_decide_play_unsafe_median():
-    """Test decision when median wind is too high."""
+    """Test decision when median wind is too high (BWF standard: 3.33 m/s)."""
     median_forecast = {
-        "horizon_1h": 2.0,  # Above default threshold of 1.5
-        "horizon_3h": 1.2,
-        "horizon_6h": 1.3,
+        "horizon_1h": 3.5,  # Above BWF threshold of 3.33
+        "horizon_3h": 3.6,
+        "horizon_6h": 3.4,
     }
 
     q90_forecast = {
-        "horizon_1h": 2.5,
-        "horizon_3h": 1.8,
-        "horizon_6h": 2.0,
+        "horizon_1h": 4.5,
+        "horizon_3h": 4.8,
+        "horizon_6h": 4.0,
     }
 
     result = decide_play(median_forecast, q90_forecast)
@@ -53,17 +53,17 @@ def test_decide_play_unsafe_median():
 
 
 def test_decide_play_unsafe_q90():
-    """Test decision when q90 wind is too high."""
+    """Test decision when q90 wind is too high (BWF standard: 5.0 m/s for gusts)."""
     median_forecast = {
-        "horizon_1h": 1.0,
-        "horizon_3h": 1.2,
-        "horizon_6h": 1.3,
+        "horizon_1h": 2.0,
+        "horizon_3h": 2.2,
+        "horizon_6h": 2.3,
     }
 
     q90_forecast = {
-        "horizon_1h": 1.5,
-        "horizon_3h": 3.0,  # Above default threshold of 2.5
-        "horizon_6h": 2.0,
+        "horizon_1h": 4.5,
+        "horizon_3h": 5.5,  # Above BWF threshold of 5.0
+        "horizon_6h": 4.8,
     }
 
     result = decide_play(median_forecast, q90_forecast)

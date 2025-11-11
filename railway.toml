@@ -5,6 +5,6 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python -m src.integrations.telegram_bot"
+startCommand = "python -m src.integrations.telegram_bot_refactored"
 restartPolicyType = "ALWAYS"
 restartPolicyMaxRetries = 10
