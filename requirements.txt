@@ -7,6 +7,7 @@ scikit-learn==1.5.0
 # Bot framework
 python-telegram-bot==22.5
 python-dotenv==1.2.1
+sentry-sdk==2.43.0
 
 # API requests
 requests==2.32.5
