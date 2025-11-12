@@ -461,13 +461,17 @@ class BadmintonBot:
 
         # Add weather logging job (runs every hour)
         job_queue = self.application.job_queue
-        job_queue.run_repeating(
-            self._log_weather_data,
-            interval=3600,  # 1 hour in seconds
-            first=10,  # Start after 10 seconds
-            name="weather_logger"
-        )
-        logger.info("✅ Weather logging job scheduled (every 1 hour)")
+        if job_queue is not None:
+            job_queue.run_repeating(
+                self._log_weather_data,
+                interval=3600,  # 1 hour in seconds
+                first=10,  # Start after 10 seconds
+                name="weather_logger"
+            )
+            logger.info("✅ Weather logging job scheduled (every 1 hour)")
+        else:
+            logger.warning("⚠️ JobQueue not available. Install with: pip install 'python-telegram-bot[job-queue]'")
+            logger.warning("⚠️ Automatic weather logging is DISABLED")
 
         logger.info("Bot ready! Press Ctrl+C to stop.")
         
