@@ -8,3 +8,10 @@ builder = "NIXPACKS"
 startCommand = "python -m src.integrations.telegram_bot_refactored"
 restartPolicyType = "ALWAYS"
 restartPolicyMaxRetries = 10
+
+# Resource optimization to minimize costs (stay under $5/month)
+# Bot uses minimal resources: ~50-100 MB RAM, <1% CPU average
+# Estimated cost: $0.50-$1.50/month with these settings
+healthcheckPath = "/"
+healthcheckTimeout = 100
+numReplicas = 1  # Single instance only

@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
-      fail-fast: false  # Continue even if one Python version fails
+        python-version: ['3.10']  # Match Railway's Python version
+      fail-fast: false
 
     steps:
     - name: Checkout code
