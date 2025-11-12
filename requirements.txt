@@ -6,6 +6,8 @@ scikit-learn==1.5.0
 
 # Bot framework
 python-telegram-bot[job-queue]==22.5
+APScheduler==3.11.1  # Required for job-queue
+tzlocal==5.3.1  # Required for APScheduler
 python-dotenv==1.2.1
 sentry-sdk==2.43.0
 
