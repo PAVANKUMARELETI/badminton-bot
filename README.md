@@ -2,17 +2,17 @@
 
 🏸 **Production-ready ML system** for predicting wind conditions and deciding whether it's safe to play badminton outdoors. Features LSTM forecasting, BWF-compliant thresholds, and automatic data collection.
 
-## ✨ Features
+## Features
 
-- 🎯 **BWF Standards**: Complies with Badminton World Federation wind thresholds (12 km/h median, 18 km/h gusts)
-- 🤖 **Telegram Bot**: Interactive bot for instant weather checks and forecasts
-- 📊 **LSTM Forecasting**: Deep learning model predicting 1h/3h/6h wind speeds
-- 🌍 **Real Data**: Automatic collection from OpenWeatherMap API
-- 🧪 **Well-tested**: 15+ test suites with CI/CD via GitHub Actions
-- 🚀 **Deployed**: Live on Railway.app with auto-deployment
-- � **Modular**: Refactored architecture for easy maintenance
+- **BWF Standards**: Complies with Badminton World Federation wind thresholds (12 km/h median, 18 km/h gusts)
+- **Telegram Bot**: Interactive bot for instant weather checks and forecasts
+- **LSTM Forecasting**: Deep learning model predicting 1h/3h/6h wind speeds
+- **Real Data**: Automatic collection from OpenWeatherMap API
+- **Well-tested**: 15+ test suites with CI/CD via GitHub Actions
+- **Deployed**: Live on Railway.app with auto-deployment
+- **Modular**: Refactored architecture for easy maintenance
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Installation
 
@@ -115,9 +115,9 @@ Bot:  ✅ PLAY! Conditions are perfect!
 ✅ Gusts: 3.2 m/s (Safe: ≤5.0 m/s)
 ```
 
-## 📖 Documentation
+## Documentation
 
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment on Railway.app 🆕
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment on Railway.app
 - **[Setup Guide](docs/SETUP.md)** - Detailed installation instructions
 - **[User Guide](docs/USER_GUIDE.md)** - How to use the bot
 - **[API Reference](docs/API.md)** - Complete API documentation
@@ -126,17 +126,17 @@ Bot:  ✅ PLAY! Conditions are perfect!
 - **[Data Collection](docs/DATA_COLLECTION.md)** - Automatic data logging system
 - **[Improvement Plan](docs/IMPROVEMENT_PLAN.md)** - Roadmap and future features
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-📱 User Interfaces
+ User Interfaces
    ├── Telegram Bot (refactored modular architecture)
    ├── Gradio Web UI
    └── CLI Tools
 
 ⬇️
 
-🔧 Bot Integration Layer
+ Bot Integration Layer
    ├── bot_formatters.py    - Message templates
    ├── bot_weather.py       - Weather API & decisions
    ├── bot_keyboards.py     - UI button layouts
@@ -144,14 +144,14 @@ Bot:  ✅ PLAY! Conditions are perfect!
 
 ⬇️
 
-🧠 ML Pipeline
+ ML Pipeline
    ├── Feature Engineering  - 29 engineered features
    ├── LSTM Model          - Wind speed forecasting
    └── Decision Engine     - BWF-compliant rules
 
 ⬇️
 
-🌍 Data Layer
+ Data Layer
    ├── OpenWeatherMap API  - Live weather data
    └── Auto Data Logger    - CSV collection for retraining
 ```
@@ -166,7 +166,7 @@ Bot:  ✅ PLAY! Conditions are perfect!
 - **Deployment**: Railway.app
 - **CI/CD**: GitHub Actions
 
-## 📊 Model Performance
+## Model Performance
 
 - **Architecture**: LSTM with 64→32 units
 - **Input**: 24 timesteps × 29 features
@@ -181,7 +181,7 @@ Bot:  ✅ PLAY! Conditions are perfect!
 - Wind components (U/V)
 - Rolling statistics (mean, std, min, max)
 
-## 🧪 Testing
+## Testing
 
 ```powershell
 # Run all tests
@@ -200,7 +200,7 @@ pytest tests/integration/test_bwf_thresholds.py -v
 - Decision Logic: 100% coverage
 - Overall: >80% target
 
-## 🌟 Real Data Collection
+## Real Data Collection
 
 The system automatically collects real weather data with every bot interaction:
 
@@ -211,32 +211,32 @@ python scripts/check_data_collection.py
 
 **Output:**
 ```
-📊 Data Collection Summary
+Data Collection Summary
 ========================
-📁 File: data/collected/weather_observations.csv
-📈 Total records: 1,247
-📅 Date range: 2025-11-01 to 2025-11-11
-📍 Locations: IIIT Lucknow, Delhi, Mumbai
-⏰ Collection period: 11 days
-🎯 Target: 30 days for retraining
+File: data/collected/weather_observations.csv
+Total records: 1,247
+Date range: 2025-11-01 to 2025-11-11
+Locations: IIIT Lucknow, Delhi, Mumbai
+Collection period: 11 days
+Target: 30 days for retraining
 ```
 
 After 30 days of collection, retrain the model on real data for improved accuracy!
 
-## 🚀 Deployment
+## Deployment
 
-### Railway.app (Production) ⭐
+### Railway.app (Production)
 
-**Status**: ✅ Using refactored bot with Sentry error tracking
+**Status**: Using refactored bot with Sentry error tracking
 
 Automatic deployment from `main` branch.
 
 **Features:**
-- 🔄 Auto-restart on failure
-- 🔐 Environment variable management
-- 🚀 Zero-downtime deployments
-- 💰 Free tier available (500 hours/month)
-- 📊 Sentry integration for error monitoring
+- Auto-restart on failure
+- Environment variable management
+- Zero-downtime deployments
+- Free tier available (500 hours/month)
+- Sentry integration for error monitoring
 
 **Quick Deploy:**
 ```bash
@@ -275,7 +275,7 @@ COPY . .
 CMD ["python", "-m", "src.integrations.telegram_bot_refactored"]
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! See **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** for:
 
@@ -298,7 +298,7 @@ We welcome contributions! See **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** for:
 
 See **[IMPROVEMENT_PLAN.md](docs/IMPROVEMENT_PLAN.md)** for detailed roadmap.
 
-**Phase 1 (Weeks 1-2)** - ✅ IN PROGRESS
+**Phase 1 (Weeks 1-2)** - IN PROGRESS
 - [x] Refactor telegram_bot.py into modular architecture
 - [x] Add comprehensive documentation (API, DEVELOPMENT)
 - [ ] Set up CI/CD with GitHub Actions
@@ -325,14 +325,14 @@ See **[IMPROVEMENT_PLAN.md](docs/IMPROVEMENT_PLAN.md)** for detailed roadmap.
 
 MIT License - See LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **OpenWeatherMap** - Weather data API
 - **Badminton World Federation** - Wind threshold standards
 - **TensorFlow Team** - ML framework
 - **python-telegram-bot** - Bot framework
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/PAVANKUMARELETI/badminton-bot/issues)
 - **Documentation**: [docs/](docs/)
@@ -419,7 +419,7 @@ make ui
 
 The Space will automatically build and deploy your Gradio app.
 
-## 🤖 Bot Integrations
+## Bot Integrations
 
 Make your forecaster available via messaging apps! Perfect for college groups.
 
@@ -512,13 +512,13 @@ pytest --cov=src --cov-report=html
 
 ## Model Performance
 
-### Current Status: ⚠️ Trained on Synthetic Data
+### Current Status: Trained on Synthetic Data
 
 The current deployed model is trained on **synthetic/sample data** for demonstration purposes:
 - **Baseline (Persistence)**: MAE ~0.3 m/s, RMSE ~0.45 m/s
 - **LSTM**: MAE ~0.25 m/s, RMSE ~0.38 m/s (after 50 epochs)
 
-### 🎯 Next Step: Train on Real Historical Data
+### Next Step: Train on Real Historical Data
 
 To achieve production-ready performance, the model needs to be trained on **real historical weather data** from IIIT Lucknow:
 
@@ -532,7 +532,7 @@ To achieve production-ready performance, the model needs to be trained on **real
 - Export as CSV with columns: `datetime, wind_m_s, wind_gust_m_s, temp, humidity, pressure`
 - Place in `data/raw/` and retrain
 
-**Option 3: ✅ Automatic Data Collection (RECOMMENDED)**
+**Option 3: Automatic Data Collection (RECOMMENDED)**
 - **The bot automatically collects data** every time you use it!
 - Observations saved to `data/collected/weather_observations.csv`
 - After 30+ days, retrain with: `python scripts/check_data_collection.py --retrain`
@@ -555,7 +555,7 @@ If you use this project, please cite:
 ```bibtex
 @software{badminton_wind_predictor,
   title={Badminton Wind Predictor},
-  author={Your Name},
+  author={Pavan Eleti},
   year={2025},
   url={https://github.com/pavankumareleti/badminton-wind-predictor}
 }
